@@ -1,1 +1,31 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.class
+
+# Environment variables
 .env
+
+# SQLite DB
+db.sqlite3
+
+# Django migrations (optional, but safe if team regenerates)
+*/migrations/*.py
+*/migrations/*.pyc
+*/migrations/__pycache__/
+
+# Logs
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# MacOS system files
+.DS_Store
+
+# Coverage reports
+htmlcov/
+.coverage
