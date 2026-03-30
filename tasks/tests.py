@@ -1,40 +1,40 @@
+# tasks/tests.py
 from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
-from users.models import User
-from academic.models import School, Department, Course, Unit
+from django.contrib.auth import get_user_model
+from academic.models import Unit, Course, Department, School
 from .models import Task, TaskSubmission
-#create ur tests here
+
+User = get_user_model()
+
 class TaskSubmissionTestCase(TestCase):
     def setUp(self):
-        # 1. Build the required academic chain
-        self.school = School.objects.create(name="Tech School")
-        self.dept = Department.objects.create(name="CS Dept", school=self.school)
-        self.course = Course.objects.create(name="BSc CS", department=self.dept)
-        self.unit = Unit.objects.create(name="Programming", code="CS101")
-        self.unit.courses.add(self.course)
-
-        # 2. Create the test users
-        self.lecturer = User.objects.create(username="lecturer1", role="staff")
-        self.student = User.objects.create(username="student1", role="student")
-
-        # 3. Create a task with a deadline set to YESTERDAY
-        yesterday = timezone.now() - timedelta(days=1)
+        self.user = User.objects.create_user(username='student1', password='password')
+        self.staff = User.objects.create_user(username='staff1', password='password', is_staff=True)
+        
+        # Setup basic academic structure for the task
+        self.school = School.objects.create(name="Test School")
+        self.dept = Department.objects.create(name="Test Dept", school=self.school)
+        self.course = Course.objects.create(name="Test Course", department=self.dept)
+        
+        # FIX: Create unit and link to course directly
+        self.unit = Unit.objects.create(name="Calculus", code="MATH101", course=self.course)
+        
+        # Create a task that was due yesterday
         self.task = Task.objects.create(
-            title="Test Assignment",
+            title="Assignment 1",
+            due_date=timezone.now() - timedelta(days=1),
             unit=self.unit,
-            created_by=self.lecturer,
-            due_date=yesterday
+            created_by=self.staff
         )
 
     def test_is_late_property(self):
-        # 4. Create a submission right NOW
+        # Create a submission now (1 day late)
         submission = TaskSubmission.objects.create(
             task=self.task,
-            student=self.student,
+            student=self.user,
             submission_link="https://drive.google.com/test"
         )
-
-        # 5. The actual test: Ask Python to mathematically prove it is late
-        # assertTrue means the test PASSES if submission.is_late is True
+        # This checks the logic we added to tasks/models.py
         self.assertTrue(submission.is_late)

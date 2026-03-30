@@ -25,7 +25,8 @@ class UnitSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Unit
-        fields = ['id', 'name', 'unit_code', 'course', 'course_name']
+        # Changed 'unit_code' to 'code' to match the updated Model and Tests
+        fields = ['id', 'name', 'code', 'course', 'course_name']
 
 class EnrollmentSerializer(serializers.ModelSerializer):
     student_username = serializers.ReadOnlyField(source='student.username')
