@@ -66,3 +66,15 @@ def login(username, password):
         print("Invalid credentials.")
         return None
     
+    def verify_token(token):
+    try:
+        # This decodes the "pass" using your secret key
+        data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        print(f"Token is VALID for user: {data['username']}")
+        return data['username']
+    except jwt.ExpiredSignatureError:
+        print("Error: Token has expired. Please login again.")
+        return None
+    except jwt.InvalidTokenError:
+        print("Error: Invalid token. Access denied.")
+        return None
