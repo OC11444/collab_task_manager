@@ -1,8 +1,11 @@
+#reports/models.py
+
 from django.db import models
 from django.conf import settings
 
-#create ur models here
+
 class ReportSnapshot(models.Model):
+    """Existing model for ad-hoc, flexible report storage."""
     REPORT_TYPES = (
         ('task_completion', 'Task Completion Rates'),
         ('student_performance', 'Student Performance'),
@@ -11,13 +14,51 @@ class ReportSnapshot(models.Model):
 
     title = models.CharField(max_length=200)
     report_type = models.CharField(max_length=50, choices=REPORT_TYPES)
-
-    # This is where the magic happens for your future AI dataset
     data = models.JSONField()
-
-    # Using SET_NULL so if a staff member leaves, we don't lose the historical reports they generated
-    generated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    generated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.title} - {self.created_at.strftime('%Y-%m-%d')}"
+
+
+class UnitPerformanceSnapshot(models.Model):
+    """
+    Append-only historical snapshots for analytical reporting.
+    Strictly decoupled using raw IDs.
+    """
+    SNAPSHOT_TYPES = (
+        ('progress', 'Progress (In-Period)'),
+        ('final', 'Final (Post-Deadline)'),
+    )
+
+    # Identifiers (Decoupled)
+    unit_id = models.PositiveIntegerField(db_index=True)
+    lecturer_id = models.PositiveIntegerField(db_index=True)
+
+    # Metrics
+    submission_rate = models.DecimalField(max_digits=5, decimal_places=2)
+    on_time_ratio = models.DecimalField(max_digits=5, decimal_places=2)
+    pending_reviews = models.PositiveIntegerField()
+    overdue_feedback = models.PositiveIntegerField()
+
+    # Logic Tracking
+    snapshot_type = models.CharField(
+        max_length=10,
+        choices=SNAPSHOT_TYPES,
+        default='progress'
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        # No UniqueConstraint on unit_id alone because we WANT multiple
+        # rows over time to build the history for the AI.
+
+    def __str__(self):
+        return f"Unit {self.unit_id} - {self.snapshot_type} @ {self.timestamp.date()}"

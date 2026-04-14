@@ -42,4 +42,13 @@ __pycache__/
 
 # Ignore virtual environment folders
 venv/
-env/
+env/.env
+.env
+# Database Backups (CRITICAL)
+*.sql
+ctm_backup.sql
+
+# Redundancy cleanup - ensure these are only here once
+.env
+venv/
+__pycache__/ 

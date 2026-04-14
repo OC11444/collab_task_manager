@@ -1,40 +1,87 @@
-# tasks/tests.py
-from django.test import TestCase
-from django.utils import timezone
 from datetime import timedelta
+from django.utils import timezone
 from django.contrib.auth import get_user_model
-from academic.models import Unit, Course, Department, School
-from .models import Task, TaskSubmission
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+# Added Enrollment here
+from academic.models import Unit, Enrollment
+from comments_notifications.models import Notification
+from tasks.models import Task, TaskSubmission
 
 User = get_user_model()
 
-class TaskSubmissionTestCase(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='student1', password='password')
-        self.staff = User.objects.create_user(username='staff1', password='password', is_staff=True)
-        
-        # Setup basic academic structure for the task
-        self.school = School.objects.create(name="Test School")
-        self.dept = Department.objects.create(name="Test Dept", school=self.school)
-        self.course = Course.objects.create(name="Test Course", department=self.dept)
-        
-        # FIX: Create unit and link to course directly
-        self.unit = Unit.objects.create(name="Calculus", code="MATH101", course=self.course)
-        
-        # Create a task that was due yesterday
-        self.task = Task.objects.create(
-            title="Assignment 1",
-            due_date=timezone.now() - timedelta(days=1),
-            unit=self.unit,
-            created_by=self.staff
+
+class TestCommentIntegration(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.lecturer = User.objects.create_user(
+            username="lecturer_user",
+            password="<PASSWORD_PLACEHOLDER>",
+            is_staff=True,
+        )
+        cls.student = User.objects.create_user(
+            username="student_user",
+            password="<PASSWORD_PLACEHOLDER>",
+        )
+        # 1. Create a second student
+        cls.student2 = User.objects.create_user(
+            username="student_user_2",
+            password="<PASSWORD_PLACEHOLDER>",
         )
 
-    def test_is_late_property(self):
-        # Create a submission now (1 day late)
-        submission = TaskSubmission.objects.create(
-            task=self.task,
-            student=self.user,
-            submission_link="https://drive.google.com/test"
+        cls.unit = Unit.objects.create(
+            name="Software Engineering",
+            code="SE101",
+            lecturer=cls.lecturer,
         )
-        # This checks the logic we added to tasks/models.py
-        self.assertTrue(submission.is_late)
+
+        # 2. Enroll both students in the unit
+        Enrollment.objects.create(student=cls.student, unit=cls.unit)
+        Enrollment.objects.create(student=cls.student2, unit=cls.unit)
+
+        cls.task = Task.objects.create(
+            title="Assignment 1",
+            unit=cls.unit,
+            created_by=cls.lecturer,
+            due_date=timezone.now() + timedelta(days=7),
+        )
+
+        cls.submission = TaskSubmission.objects.create(
+            task=cls.task,
+            student=cls.student,
+        )
+
+    def test_submission_feedback_creates_notification(self):
+        self.client.force_authenticate(user=self.lecturer)
+
+        response = self.client.post(
+            f"/api/v1/task-submissions/{self.submission.id}/comments/",
+            {"content": "Please review your citations."},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Notification.objects.count(), 1)
+        self.assertEqual(Notification.objects.first().recipient, self.student)
+
+    # 3. Add the fan-out integration test
+    def test_public_task_comment_creates_fan_out_notifications(self):
+        Notification.objects.all().delete()
+
+        # Student 1 makes the comment
+        self.client.force_authenticate(user=self.student)
+
+        response = self.client.post(
+            f"/api/v1/tasks/{self.task.id}/comments/",
+            {"content": "Can someone clarify the requirements for question 2?"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Should notify the Lecturer and Student 2. Student 1 is excluded.
+        self.assertEqual(Notification.objects.count(), 2)
+
+        recipients = list(Notification.objects.values_list('recipient', flat=True))
+        self.assertIn(self.lecturer.id, recipients)
+        self.assertIn(self.student2.id, recipients)
+        self.assertNotIn(self.student.id, recipients)

@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-z7fgasbai89a28sskeel4hr0e*$i&btwpcur$xw&fbk$w$@=w#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
 
 
 # Application definition
@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
 
     # Our Custom Apps
     'users',
@@ -47,6 +48,23 @@ INSTALLED_APPS = [
     'reports',
 
 ]
+# 2. Add the REST_FRAMEWORK configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+# 3. (Optional) Configure JWT expiration times
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -81,14 +99,19 @@ WSGI_APPLICATION = 'collab_task_manager.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'collab_tasks_db',
+        'USER': 'root',
+        'PASSWORD': '@James748',
+        'HOST': 'localhost',  # Must be 'localhost' for sockets
+        'PORT': '',           # Leave port empty when using sockets
+        'OPTIONS': {
+            'unix_socket': '/tmp/mysql.sock', # Paste the result from Step 1 here
+        },
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
