@@ -5,6 +5,7 @@ __pycache__/
 
 # Environment variables
 .env
+env/.env
 
 # SQLite DB
 db.sqlite3
@@ -30,25 +31,9 @@ db.sqlite3
 htmlcov/
 .coverage
 
-# Ignore the local database
-db.sqlite3
-
-# Ignore Python cache files
-__pycache__/
-*.pyc
-
-# Ignore environment variables (where real passwords will go later)
-.env
-
 # Ignore virtual environment folders
 venv/
-env/.env
-.env
-# Database Backups (CRITICAL)
+
+# Database backups
 *.sql
 ctm_backup.sql
-
-# Redundancy cleanup - ensure these are only here once
-.env
-venv/
-__pycache__/ 
