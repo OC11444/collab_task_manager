@@ -10,10 +10,10 @@ env/.env
 # SQLite DB
 db.sqlite3
 
-# Django migrations (optional, but safe if team regenerates)
-*/migrations/*.py
-*/migrations/*.pyc
-*/migrations/__pycache__/
+# Django migrations (optional, but safe if team regenerates)--->this caused errors since we never knew what migrations were being tracked.thats why i got it works on my machine but not in production,make sure to verfy all migratons ote which ones are actively listening
+**/migrations/__pycache__/
+**/migrations/*.pyc
+
 
 # Logs
 *.log
