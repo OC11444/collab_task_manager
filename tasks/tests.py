@@ -1,40 +1,82 @@
-from django.test import TestCase
-from django.utils import timezone
 from datetime import timedelta
-from users.models import User
-from academic.models import School, Department, Course, Unit
-from .models import Task, TaskSubmission
-#create ur tests here
-class TaskSubmissionTestCase(TestCase):
-    def setUp(self):
-        # 1. Build the required academic chain
-        self.school = School.objects.create(name="Tech School")
-        self.dept = Department.objects.create(name="CS Dept", school=self.school)
-        self.course = Course.objects.create(name="BSc CS", department=self.dept)
-        self.unit = Unit.objects.create(name="Programming", code="CS101")
-        self.unit.courses.add(self.course)
+from django.urls import reverse
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+from rest_framework import status
+from rest_framework.test import APITestCase
 
-        # 2. Create the test users
-        self.lecturer = User.objects.create(username="lecturer1", role="staff")
-        self.student = User.objects.create(username="student1", role="student")
+from academic.models import Unit, Enrollment
+from comments_notifications.models import Notification
+from tasks.models import Task, TaskSubmission
 
-        # 3. Create a task with a deadline set to YESTERDAY
-        yesterday = timezone.now() - timedelta(days=1)
-        self.task = Task.objects.create(
-            title="Test Assignment",
-            unit=self.unit,
-            created_by=self.lecturer,
-            due_date=yesterday
+User = get_user_model()
+
+
+class TestCommentIntegration(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.lecturer = User.objects.create_user(
+            username="lecturer_user",
+            password="<PASSWORD_PLACEHOLDER>",
+            is_staff=True,
+        )
+        cls.student = User.objects.create_user(
+            username="student_user",
+            password="<PASSWORD_PLACEHOLDER>",
+        )
+        cls.student2 = User.objects.create_user(
+            username="student_user_2",
+            password="<PASSWORD_PLACEHOLDER>",
         )
 
-    def test_is_late_property(self):
-        # 4. Create a submission right NOW
-        submission = TaskSubmission.objects.create(
-            task=self.task,
-            student=self.student,
-            submission_link="https://drive.google.com/test"
+        cls.unit = Unit.objects.create(
+            name="Software Engineering",
+            code="SE101",
+            lecturer=cls.lecturer,
         )
 
-        # 5. The actual test: Ask Python to mathematically prove it is late
-        # assertTrue means the test PASSES if submission.is_late is True
-        self.assertTrue(submission.is_late)
+        Enrollment.objects.create(student=cls.student, unit=cls.unit)
+        Enrollment.objects.create(student=cls.student2, unit=cls.unit)
+
+        cls.task = Task.objects.create(
+            title="Assignment 1",
+            unit=cls.unit,
+            created_by=cls.lecturer,
+            due_date=timezone.now() + timedelta(days=7),
+        )
+
+        cls.submission = TaskSubmission.objects.create(
+            task=cls.task,
+            student=cls.student,
+        )
+
+    def test_submission_feedback_creates_notification(self):
+        self.client.force_authenticate(user=self.lecturer)
+
+        url = reverse("tasksubmission-comments", kwargs={"pk": self.submission.id})
+        response = self.client.post(
+            url,
+            {"content": "Please review your citations."},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Notification.objects.count(), 1)
+        self.assertEqual(Notification.objects.first().recipient, self.student)
+
+    def test_public_task_comment_creates_fan_out_notifications(self):
+        Notification.objects.all().delete()
+        self.client.force_authenticate(user=self.student)
+
+        url = reverse("task-comments", kwargs={"pk": self.task.id})
+        response = self.client.post(
+            url,
+            {"content": "Can someone clarify the requirements for question 2?"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Notification.objects.count(), 2)
+
+        recipients = list(Notification.objects.values_list("recipient", flat=True))
+        self.assertIn(self.lecturer.id, recipients)
+        self.assertIn(self.student2.id, recipients)
+        self.assertNotIn(self.student.id, recipients)

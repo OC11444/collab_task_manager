@@ -1,51 +1,63 @@
 #tasks/models.py
 from django.db import models
 from django.conf import settings
-from academic.models import Unit
+from django.utils import timezone
 
-#create ur models here
+
 class Task(models.Model):
+    PRIORITY_HIGH = 'High'
+    PRIORITY_MEDIUM = 'Medium'
+    PRIORITY_LOW = 'Low'
+
+    PRIORITY_CHOICES = [
+        (PRIORITY_HIGH, 'High'),
+        (PRIORITY_MEDIUM, 'Medium'),
+        (PRIORITY_LOW, 'Low'),
+    ]
+
     title = models.CharField(max_length=200)
     description = models.TextField()
     due_date = models.DateTimeField()
-
-    # Allows late submission .approved by checkbox in frontend
     allow_late_submissions = models.BooleanField(default=False)
-
-    # Linking to the User table (the Staff member who created it)
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default=PRIORITY_MEDIUM)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_tasks')
-
-    # Linking to the Academic table (the Unit this task belongs to)
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='tasks')
-
+    unit = models.ForeignKey('academic.Unit', on_delete=models.CASCADE, related_name='tasks')
+    study_groups = models.ManyToManyField('academic.StudyGroup', related_name='tasks', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)  # Automatically updates whenever the task is edited
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.title} ({self.unit.code})"
+        return f"{self.title} ({self.unit})"
 
 
 class TaskSubmission(models.Model):
+    STATUS_TO_DO = 'to_do'
+    STATUS_IN_PROGRESS = 'in_progress'
+    STATUS_DONE = 'done'
+
+    STATUS_CHOICES = [
+        (STATUS_TO_DO, 'To Do'),
+        (STATUS_IN_PROGRESS, 'In Progress'),
+        (STATUS_DONE, 'Done'),
+    ]
+
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='submissions')
     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='submissions')
-
-    # Using URLField to store cloudlinks instead of uploading raw data to our server.this will increase performance limit costs and help scale our system
-    submission_link = models.URLField(max_length=500)
-
-    # Tracks the exact moment they first clicked submit,when did stud a submit their work
+    submission_link = models.URLField(max_length=500, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_TO_DO)
+    grade = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    feedback = models.TextField(null=True, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
-
-    # If they realize they made a mistake and swap the link, this updates automatically
     updated_at = models.DateTimeField(auto_now=True)
 
     @property
     def is_late(self):
-        # This is your exact logic, permanently attached to the model!
+        if not self.task.due_date:
+            return False
         return self.submitted_at > self.task.due_date
 
     class Meta:
-        # Strict rule: A student can only have ONE submission record for a specific task.
         unique_together = ('task', 'student')
 
     def __str__(self):
-        return f"{self.student.username} - {self.task.title}"
+        return f"{self.student.username} - {self.task.title} ({self.status})"

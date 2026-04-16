@@ -5,14 +5,15 @@ __pycache__/
 
 # Environment variables
 .env
+env/.env
 
 # SQLite DB
 db.sqlite3
 
-# Django migrations (optional, but safe if team regenerates)
-*/migrations/*.py
-*/migrations/*.pyc
-*/migrations/__pycache__/
+# Django migrations (optional, but safe if team regenerates)--->this caused errors since we never knew what migrations were being tracked.thats why i got it works on my machine but not in production,make sure to verfy all migratons ote which ones are actively listening
+**/migrations/__pycache__/
+**/migrations/*.pyc
+
 
 # Logs
 *.log
@@ -30,16 +31,11 @@ db.sqlite3
 htmlcov/
 .coverage
 
-# Ignore the local database
-db.sqlite3
-
-# Ignore Python cache files
-__pycache__/
-*.pyc
-
-# Ignore environment variables (where real passwords will go later)
-.env
-
 # Ignore virtual environment folders
 venv/
-env/
+
+# Database backups
+*.sql
+ctm_backup.sql.env
+staticfiles/
+detected-requirements.txt
