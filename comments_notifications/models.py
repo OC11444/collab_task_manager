@@ -37,6 +37,9 @@ class Comment(models.Model):
     class Meta:
         ordering = ['created_at']
 
+    class Meta:
+        ordering = ['-created_at']  # newest comments first
+
     def __str__(self):
         target = self.content_object.__class__.__name__ if self.content_object else "Object"
         status = " (Deleted)" if not self.is_active else ""
