@@ -1,8 +1,11 @@
 # comments_notifications/urls.py
 from django.urls import path
-from .views import TaskCommentAPIView
+from .views import TaskCommentAPIView, TaskSubmissionCommentAPIView
 
 urlpatterns = [
-    # This allows: POST /api/comments/task/1/
-    path('task/<int:task_id>/', TaskCommentAPIView.as_view(), name='task-comments-standalone'),
+    # Matches reverse("task-comments", kwargs={"pk": self.task.id})
+    path('task/<int:pk>/', TaskCommentAPIView.as_view(), name='task-comments'),
+
+    # Matches reverse("tasksubmission-comments", kwargs={"pk": self.submission.id})
+    path('submission/<int:pk>/', TaskSubmissionCommentAPIView.as_view(), name='tasksubmission-comments'),
 ]
