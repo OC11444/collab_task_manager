@@ -1,9 +1,15 @@
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-
-from .views import TaskSubmissionViewSet, TaskViewSet
+from .views import TaskViewSet, TaskSubmissionViewSet
 
 router = DefaultRouter()
-router.register(r'tasks', TaskViewSet, basename='task')
-router.register(r'task-submissions', TaskSubmissionViewSet, basename='task-submission')
 
-urlpatterns = router.urls
+# Register submissions first so they are not matched by the empty task prefix
+router.register(r'submissions', TaskSubmissionViewSet, basename='task-submission')
+
+# Register tasks last at the root
+router.register(r'', TaskViewSet, basename='task')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]

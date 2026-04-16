@@ -27,7 +27,7 @@ class TaskSerializer(serializers.ModelSerializer):
             'time_left',
             'allow_late_submissions',
         ]
-        read_only_fields = ['created_by', 'unit_code', 'members', 'status', 'time_left']
+        read_only_fields = ['created_by', 'unit_code', 'members','time_left']
 
     def validate_unit(self, value):
         request = self.context.get('request')
@@ -99,6 +99,7 @@ class TaskSubmissionSerializer(serializers.ModelSerializer):
             'feedback',
             'submitted_at',
             'is_late',
+
         ]
         read_only_fields = ['student', 'grade', 'feedback', 'submitted_at', 'is_late']
 

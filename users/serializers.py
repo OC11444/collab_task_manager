@@ -1,6 +1,8 @@
-# users/serializers.py
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+
+User = get_user_model()
 
 
 class IdPSyncSerializer(serializers.Serializer):
@@ -19,3 +21,13 @@ class IdPSyncSerializer(serializers.Serializer):
             raise ValidationError({"confirm_password": "Passwords do not match."})
 
         return data
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """
+    Serializer to return the current user's profile data.
+    """
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'role', 'registration_number', 'employee_id']
+        read_only_fields = fields

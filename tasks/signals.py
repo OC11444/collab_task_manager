@@ -24,7 +24,11 @@ def handle_comment_created(sender, comment, target_object, **kwargs):
         recipients.discard(comment.author)
 
         for user in recipients:
-            create_notification(user, f"New comment on task: {target_object.title}")
+            create_notification(
+                user,
+                f"New comment on task: {target_object.title}",
+                target_object=target_object,
+            )
     elif isinstance(target_object, TaskSubmission):
         student = getattr(target_object, "student", None) or getattr(target_object, "user", None)
         lecturer = target_object.task.unit.lecturer
@@ -35,4 +39,8 @@ def handle_comment_created(sender, comment, target_object, **kwargs):
             recipient = student
 
         if recipient and recipient != comment.author:
-            create_notification(recipient, f"New feedback on {target_object.task.title}")
+            create_notification(
+                recipient,
+                f"New feedback on {target_object.task.title}",
+                target_object=target_object,
+            )

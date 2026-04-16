@@ -36,4 +36,6 @@ venv/
 
 # Database backups
 *.sql
-ctm_backup.sql
+ctm_backup.sql.env
+staticfiles/
+detected-requirements.txt

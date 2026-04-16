@@ -1,10 +1,10 @@
 from datetime import timedelta
+from django.urls import reverse
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-# Added Enrollment here
 from academic.models import Unit, Enrollment
 from comments_notifications.models import Notification
 from tasks.models import Task, TaskSubmission
@@ -24,7 +24,6 @@ class TestCommentIntegration(APITestCase):
             username="student_user",
             password="<PASSWORD_PLACEHOLDER>",
         )
-        # 1. Create a second student
         cls.student2 = User.objects.create_user(
             username="student_user_2",
             password="<PASSWORD_PLACEHOLDER>",
@@ -36,7 +35,6 @@ class TestCommentIntegration(APITestCase):
             lecturer=cls.lecturer,
         )
 
-        # 2. Enroll both students in the unit
         Enrollment.objects.create(student=cls.student, unit=cls.unit)
         Enrollment.objects.create(student=cls.student2, unit=cls.unit)
 
@@ -55,8 +53,9 @@ class TestCommentIntegration(APITestCase):
     def test_submission_feedback_creates_notification(self):
         self.client.force_authenticate(user=self.lecturer)
 
+        url = reverse("tasksubmission-comments", kwargs={"pk": self.submission.id})
         response = self.client.post(
-            f"/api/v1/task-submissions/{self.submission.id}/comments/",
+            url,
             {"content": "Please review your citations."},
         )
 
@@ -64,24 +63,20 @@ class TestCommentIntegration(APITestCase):
         self.assertEqual(Notification.objects.count(), 1)
         self.assertEqual(Notification.objects.first().recipient, self.student)
 
-    # 3. Add the fan-out integration test
     def test_public_task_comment_creates_fan_out_notifications(self):
         Notification.objects.all().delete()
-
-        # Student 1 makes the comment
         self.client.force_authenticate(user=self.student)
 
+        url = reverse("task-comments", kwargs={"pk": self.task.id})
         response = self.client.post(
-            f"/api/v1/tasks/{self.task.id}/comments/",
+            url,
             {"content": "Can someone clarify the requirements for question 2?"},
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        # Should notify the Lecturer and Student 2. Student 1 is excluded.
         self.assertEqual(Notification.objects.count(), 2)
 
-        recipients = list(Notification.objects.values_list('recipient', flat=True))
+        recipients = list(Notification.objects.values_list("recipient", flat=True))
         self.assertIn(self.lecturer.id, recipients)
         self.assertIn(self.student2.id, recipients)
         self.assertNotIn(self.student.id, recipients)
