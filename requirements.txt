@@ -6,3 +6,4 @@ python-dotenv==1.2.1
 mysqlclient==2.2.7
 gunicorn==21.2.0
 django-cors-headers==4.9.0
+dj-database-url==3.0.1
