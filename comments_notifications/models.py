@@ -52,6 +52,8 @@ class Notification(models.Model):
         on_delete=models.CASCADE,
         related_name='notifications'
     )
+    # 🚀 NEW: title acts as the "Actor" (e.g., "Sarah") while message is the "Action"
+    title = models.CharField(max_length=100, blank=True, null=True)
     message = models.CharField(max_length=255)
     is_read = models.BooleanField(default=False)
 

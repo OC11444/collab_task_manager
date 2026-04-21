@@ -7,40 +7,10 @@ from tasks.models import Task, TaskSubmission
 
 @receiver(comment_created)
 def handle_comment_created(sender, comment, target_object, **kwargs):
-    if isinstance(target_object, Task):
-        recipients = set()
+    """
+    Signal receiver for comment creation.
 
-        recipients.add(target_object.unit.lecturer)
-
-        if target_object.study_groups.exists():
-            for study_group in target_object.study_groups.all():
-                recipients.update(study_group.members.all())
-        else:
-            enrollments = target_object.unit.enrolled_students.select_related("student")
-            recipients.update(
-                enrollment.student for enrollment in enrollments if enrollment.student is not None
-            )
-
-        recipients.discard(comment.author)
-
-        for user in recipients:
-            create_notification(
-                user,
-                f"New comment on task: {target_object.title}",
-                target_object=target_object,
-            )
-    elif isinstance(target_object, TaskSubmission):
-        student = getattr(target_object, "student", None) or getattr(target_object, "user", None)
-        lecturer = target_object.task.unit.lecturer
-
-        if comment.author == student:
-            recipient = lecturer
-        else:
-            recipient = student
-
-        if recipient and recipient != comment.author:
-            create_notification(
-                recipient,
-                f"New feedback on {target_object.task.title}",
-                target_object=target_object,
-            )
+    NOTE: Notification logic has been moved to the Views (Explicit Logging)
+    to follow the 'simple and reliable' architecture and avoid double notifications.
+    """
+    pass

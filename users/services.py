@@ -1,22 +1,33 @@
-from django.contrib.auth.hashers import make_password
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
-from django.urls import reverse
 from users.models import PendingUser, User
 from users.selectors import get_university_record
+from django.conf import settings
+from django.contrib.auth.hashers import make_password
 
 
 def perform_login_sync(email, role, password, request, *, confirm_password=None):
     """
-    Orchestrates the entire identity flow.
-    Returns: (User, None) if returning, (None, PendingUser) if new.
+    Orchestrates the identity flow. Returns: (User, None) or (None, PendingUser).
     """
     university_record = get_university_record(email)
     if not university_record:
         raise ValidationError("Email not found in university records.")
 
-    if university_record['role'] != role:
-        raise ValidationError("Role mismatch. Please select the correct role.")
+    # 🛡️ Smart Role Checking
+    csv_role = str(university_record.get('role', '')).strip().lower()
+    incoming_role = str(role).strip().lower()
+    staff_aliases = ['staff', 'lecturer', 'teacher']
+
+    is_valid_role = False
+    if csv_role == incoming_role:
+        is_valid_role = True
+    elif csv_role in staff_aliases and incoming_role in staff_aliases:
+        is_valid_role = True
+
+    if not is_valid_role:
+        # SECURE: Generic message for the user
+        raise ValidationError("Authentication failed. Please ensure you are using the correct login portal.")
 
     user = User.objects.filter(email=email).first()
 
@@ -27,7 +38,6 @@ def perform_login_sync(email, role, password, request, *, confirm_password=None)
     else:
         if not confirm_password:
             raise ValidationError("First-time login requires password confirmation.")
-
         if password != confirm_password:
             raise ValidationError("Passwords do not match.")
 
@@ -37,13 +47,10 @@ def perform_login_sync(email, role, password, request, *, confirm_password=None)
 
 
 def provision_user_from_legacy(email, role, hashed_password):
-    """
-    Converts a verified PendingUser into a real User in the database.
-    This is called when the user clicks the email link.
-    """
+    """Converts a verified PendingUser into a real User using Legacy CSV data."""
     legacy_user = get_university_record(email)
     if not legacy_user:
-        raise ValueError("Legacy record disappeared.")
+        raise ValueError("Legacy record not found for this email.")
 
     user = User(
         username=legacy_user["username"],
@@ -51,19 +58,19 @@ def provision_user_from_legacy(email, role, hashed_password):
         role=role,
     )
 
-    # Map CSV fields to correct Model fields based on role
+    # Map legacy ID based on role
     if role == "student":
         user.registration_number = legacy_user.get("registration_number")
     else:
         user.employee_id = legacy_user.get("registration_number")
 
-    user.password = hashed_password
+    user.password = hashed_password  # Already hashed in PendingUser
     user.save()
     return user
 
 
 def request_user_registration(email, role, password):
-    """Creates/Updates the temporary verification record."""
+    """Creates or updates a PendingUser record before verification."""
     if User.objects.filter(email=email).exists():
         raise ValidationError("User already registered")
 
@@ -78,13 +85,21 @@ def request_user_registration(email, role, password):
 
 
 def send_verification_email(pending_user, request):
-    """Generates the UUID link and sends it via the configured backend."""
-    path = reverse("verify-email", kwargs={"token": str(pending_user.verification_token)})
-    url = request.build_absolute_uri(path)
+    """Sends the verification link to the terminal/email."""
+    token = str(pending_user.verification_token)
+    frontend_url = settings.FRONTEND_URL
+    verify_link = f"{frontend_url}/#/verify/{token}"
+
+    text_message = f"Welcome! Click here to verify your account: {verify_link}"
 
     send_mail(
-        subject="Verify your email",
-        message=f"Verify here: {url}",
+        subject="Verify your email - Collab Task Manager",
+        message=text_message,
         from_email=None,
         recipient_list=[pending_user.email],
     )
+    # Also print to terminal for easy dev testing
+    print(f"\n--- 📧 VERIFICATION LINK ---")
+    print(f"To: {pending_user.email}")
+    print(f"Link: {verify_link}")
+    print(f"---------------------------\n")

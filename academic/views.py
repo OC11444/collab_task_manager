@@ -1,5 +1,6 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated, BasePermission, SAFE_METHODS
+from rest_framework.permissions import IsAuthenticated, BasePermission, SAFE_METHODS, AllowAny
+from rest_framework.request import Request
 
 from .models import School, Department, Course, Unit, Enrollment
 from .serializers import (
@@ -23,35 +24,58 @@ class SchoolViewSet(viewsets.ModelViewSet):
 
 
 class DepartmentViewSet(viewsets.ModelViewSet):
-    queryset = Department.objects.all()
+    queryset = Department.objects.all() # Router needs this for basename
     serializer_class = DepartmentSerializer
     permission_classes = [IsStaffOrReadOnly]
 
+    def get_queryset(self):
+        request: Request = self.request
+        queryset = self.queryset
+        school_id = request.query_params.get('school')
+        if school_id:
+            queryset = queryset.filter(school_id=school_id)
+        return queryset
+
 
 class CourseViewSet(viewsets.ModelViewSet):
-    queryset = Course.objects.all()
+    queryset = Course.objects.all() # Router needs this for basename
     serializer_class = CourseSerializer
     permission_classes = [IsStaffOrReadOnly]
 
+    def get_queryset(self):
+        request: Request = self.request
+        queryset = self.queryset
+        dept_id = request.query_params.get('department')
+        if dept_id:
+            queryset = queryset.filter(department_id=dept_id)
+        return queryset
+
 
 class UnitViewSet(viewsets.ModelViewSet):
-    queryset = Unit.objects.all()
+    queryset = Unit.objects.all() # Router needs this for basename
     serializer_class = UnitSerializer
     permission_classes = [IsStaffOrReadOnly]
 
+    def get_queryset(self):
+        request: Request = self.request
+        queryset = self.queryset
+        course_id = request.query_params.get('course')
+        if course_id:
+            queryset = queryset.filter(course_id=course_id)
+        return queryset
+
 
 class EnrollmentViewSet(viewsets.ModelViewSet):
+    queryset = Enrollment.objects.all() # Router needs this for basename
     serializer_class = EnrollmentSerializer
     permission_classes = [IsAuthenticated]
 
-    # Security: Ensure students only see their own enrollments
     def get_queryset(self):
         user = self.request.user
         if user.is_staff or user.is_superuser:
-            return Enrollment.objects.all()
-        return Enrollment.objects.filter(student=user)
+            return self.queryset
+        return self.queryset.filter(student=user)
 
-    # Security: Ensure when a student enrolls, it locks to their user ID
     def perform_create(self, serializer):
         if not self.request.user.is_staff:
             serializer.save(student=self.request.user)

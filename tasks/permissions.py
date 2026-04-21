@@ -1,4 +1,3 @@
-#tasks/permissions.py
 from rest_framework import permissions
 
 
@@ -34,20 +33,26 @@ class IsOwnerOrStaff(permissions.BasePermission):
 
 class IsStaffOrStudentEnrolled(permissions.BasePermission):
     def has_permission(self, request, view):
-        # Everyone authenticated can see the list or details
-        return request.user and request.user.is_authenticated
+        if not (request.user and request.user.is_authenticated):
+            return False
+
+        # Staff can do anything; Students can do GET or PATCH
+        if not (request.user.is_staff or request.user.is_superuser):
+            return request.method in permissions.SAFE_METHODS or request.method == 'PATCH'
+
+        return True
 
     def has_object_permission(self, request, view, obj):
-        # 1. Staff can do anything
         if request.user.is_staff or request.user.is_superuser:
             return True
 
-        # 2. For Students:
-        if request.method == 'PATCH':
-            # Check if student is enrolled in the unit of this task
-            from academic.selectors import get_user_enrolled_unit_ids
-            unit_ids = get_user_enrolled_unit_ids(request.user)
-            return obj.unit_id in unit_ids
+        from django.apps import apps
+        # Use the app registry to maintain loose coupling
+        Enrollment = apps.get_model('academic', 'Enrollment')
+        unit_ids = Enrollment.objects.filter(student=request.user).values_list('unit_id', flat=True)
 
-        # 3. Students can only use GET for everything else
-        return request.method in permissions.SAFE_METHODS
+        # Students must be enrolled in the unit to view or update their status
+        if obj.unit_id in unit_ids:
+            return request.method in permissions.SAFE_METHODS or request.method == 'PATCH'
+
+        return False

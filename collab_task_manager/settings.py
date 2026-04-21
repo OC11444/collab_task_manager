@@ -22,7 +22,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.100.105', 'testserver']
 
 
 # Application definition
@@ -47,6 +47,9 @@ INSTALLED_APPS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
     ),
 }
 
@@ -119,6 +122,21 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = f"Collab Admin <{os.getenv('EMAIL_HOST_USER')}>"
 
+# settings.py
+
+# Add 8080 to the allowed list
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8080",  # Your current frontend port
+    "http://127.0.0.1:8080",
+    "http://192.168.100.105:8080",
+]
+
+# Add these for smoother development handshake
+CORS_ALLOW_ALL_ORIGINS = True  # 👈 FLIPPED TO TRUE FOR TESTING
+CORS_ALLOW_CREDENTIALS = True
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -154,3 +172,5 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
+
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:8080")

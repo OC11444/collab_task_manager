@@ -1,16 +1,20 @@
+from django.utils import timezone
+from datetime import timedelta
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
-from .models import PendingUser
+from .models import PendingUser, User  # 👈 Added User here!
 from .serializers import IdPSyncSerializer
 from .services import perform_login_sync, provision_user_from_legacy
-from rest_framework.permissions import IsAuthenticated
-from .serializers import UserSerializer # Ensure this is in your serializers.py
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from .serializers import UserSerializer
 
 
 class LoginSyncView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         serializer = IdPSyncSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -23,12 +27,15 @@ class LoginSyncView(APIView):
 
             if user:
                 refresh = RefreshToken.for_user(user)
+                # Include basic user info in response for frontend
                 return Response({
-                    "tokens": {
-                        "refresh": str(refresh),
-                        "access": str(refresh.access_token)
-                    },
-                    "role": user.role
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                    "role": user.role,
+                    "user": {
+                        "username": user.username,
+                        "email": user.email
+                    }
                 })
 
             return Response(
@@ -37,10 +44,19 @@ class LoginSyncView(APIView):
             )
 
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+            # Keep this for your eyes only (the terminal)
+            print(f"DEBUG ERROR: {str(e)}")
+
+            # Send a safe, generic message to the frontend/user
+            return Response(
+                {"error": f"The exact bug is: {str(e)}"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
 
 class SignupView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         email = request.data.get("email")
         role = request.data.get("role")
@@ -68,6 +84,8 @@ class SignupView(APIView):
 
 
 class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request, token):
         pending_user = get_object_or_404(PendingUser, verification_token=token)
 
@@ -80,11 +98,19 @@ class VerifyEmailView(APIView):
 
             pending_user.delete()
 
+            # Generate the JWT tokens for the newly verified user
+            refresh = RefreshToken.for_user(user)
+
             return Response(
                 {
                     "message": "Account verified successfully.",
-                    "username": user.username,
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
                     "role": user.role,
+                    "user": {
+                        "username": user.username,
+                        "email": user.email
+                    }
                 },
                 status=status.HTTP_200_OK
             )
@@ -94,6 +120,7 @@ class VerifyEmailView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+
 class UserMeView(APIView):
     """
     Returns the profile of the currently authenticated user.
@@ -102,6 +129,35 @@ class UserMeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Because of IsAuthenticated, request.user is already the logged-in User object
         serializer = UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class TeamPresenceView(APIView):
+    """
+    1. Updates the requesting user's 'last_seen' timestamp.
+    2. Returns a list of all users and their online status (active in last 5 mins).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # 1. Update my heartbeat
+        request.user.last_seen = timezone.now()
+        request.user.save(update_fields=['last_seen'])
+
+        # 2. Determine who is online (active in the last 5 minutes)
+        five_mins_ago = timezone.now() - timedelta(minutes=5)
+        all_users = User.objects.all()
+
+        # 3. Format exactly how the React frontend expects it
+        members_data = []
+        for u in all_users:
+            is_online = bool(u.last_seen and u.last_seen >= five_mins_ago)
+            members_data.append({
+                "id": str(u.id),
+                "name": u.username or u.email.split('@')[0],
+                "initials": (u.username[:2] if u.username else u.email[:2]).upper(),
+                "color": "#3b82f6" if u.role in ["staff", "teacher"] else "#10b981", # Blue for staff, Green for students
+                "isOnline": is_online
+            })
+
+        return Response(members_data, status=status.HTTP_200_OK)

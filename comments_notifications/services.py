@@ -31,10 +31,10 @@ def create_comment(author, content, target_object, parent=None):
     return new_comment
 
 
-def create_notification(recipient, message, target_object=None):
+def create_notification(recipient, title, message, target_object=None):
     """
-    Creates a notification. If target_object is provided, it enables
-    contextual routing for the frontend.
+    Creates an activity log entry.
+    'title' is the Actor (Who), 'message' is the Action (What).
     """
     target_ct = None
     target_id = None
@@ -45,6 +45,7 @@ def create_notification(recipient, message, target_object=None):
 
     return Notification.objects.create(
         recipient=recipient,
+        title=title,
         message=message,
         target_content_type=target_ct,
         target_object_id=target_id

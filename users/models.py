@@ -18,6 +18,9 @@ class User(AbstractUser):
     employee_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
     is_class_rep = models.BooleanField(default=False)
 
+    # 🟢 Presence Heartbeat
+    last_seen = models.DateTimeField(null=True, blank=True)
+
     def __str__(self):
         return f"{self.username} - {self.get_role_display()}"
 

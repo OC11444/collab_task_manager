@@ -53,7 +53,7 @@ class TestCommentIntegration(APITestCase):
     def test_submission_feedback_creates_notification(self):
         self.client.force_authenticate(user=self.lecturer)
 
-        url = reverse("tasksubmission-comments", kwargs={"pk": self.submission.id})
+        url = reverse("task-submission-comments", kwargs={"pk": self.submission.id})
         response = self.client.post(
             url,
             {"content": "Please review your citations."},

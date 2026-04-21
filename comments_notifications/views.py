@@ -7,10 +7,10 @@ from django.shortcuts import get_object_or_404
 from django.apps import apps
 from django.db.models import Model
 
-from .serializers import CommentSerializer
+from .serializers import CommentSerializer, NotificationSerializer
 from .selectors import get_comments_for_object
-from .services import create_comment
-from .models import Comment
+from .services import create_comment, create_notification #  Added create_notification
+from .models import Comment, Notification
 
 class BaseCommentAPIView(APIView):
     """
@@ -48,6 +48,29 @@ class BaseCommentAPIView(APIView):
             parent=parent_comment
         )
 
+        # 🚀 EXPLICIT ACTIVITY LOGGING
+        # Identify who should receive the notification
+        recipient = None
+
+        # Scenario A: Comment on a TaskSubmission (Common for Grading/Feedback)
+        if hasattr(target, 'student') and hasattr(target, 'task'):
+            # If the lecturer comments, notify the student. If student comments, notify the lecturer.
+            recipient = target.student if request.user != target.student else target.task.created_by
+
+        # Scenario B: Comment on a Task (General discussion)
+        elif hasattr(target, 'created_by'):
+            # Notify the creator of the task if someone else comments
+            if request.user != target.created_by:
+                recipient = target.created_by
+
+        if recipient:
+            create_notification(
+                recipient=recipient,
+                title=request.user.username,
+                message=f"commented on {getattr(target, 'title', 'your submission')}",
+                target_object=target
+            )
+
         serializer = CommentSerializer(new_comment, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -56,3 +79,29 @@ class TaskCommentAPIView(BaseCommentAPIView):
 
 class TaskSubmissionCommentAPIView(BaseCommentAPIView):
     model_lookup = 'tasks.TaskSubmission'
+
+class NotificationListView(APIView):
+    """
+    Returns all notifications for the logged-in user.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Fetch notifications for this user, newest first
+        notifications = Notification.objects.filter(recipient=request.user).order_by('-created_at')
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response(serializer.data)
+
+
+class MarkNotificationReadView(APIView):
+    """
+    Sets a specific notification status to 'read'.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    # Changed from post to patch to match the frontend axios request
+    def patch(self, request, pk):
+        notification = get_object_or_404(Notification, id=pk, recipient=request.user)
+        notification.is_read = True
+        notification.save()
+        return Response({"status": "success"})

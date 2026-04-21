@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.db.models import Q
-from .models import Comment
+from .models import Comment, Notification
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -27,3 +27,9 @@ class CommentSerializer(serializers.ModelSerializer):
             # Pass the context down so deeply nested replies stay secure
             return CommentSerializer(replies, many=True, context=self.context).data
         return []
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'message', 'is_read', 'created_at', 'target_content_type', 'target_object_id']

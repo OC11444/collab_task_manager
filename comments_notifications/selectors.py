@@ -16,14 +16,18 @@ def get_comments_for_object(target_object, user):
         parent__isnull=True
     ).select_related('author')
 
-    # 2. RBAC: Teachers and Lecturers see all comments
+    # 2. RBAC: Staff and Admins see all comments
     user_role = getattr(user, 'role', '').lower()
-    if user_role in ['teacher', 'lecturer', 'admin']:
+    if user_role in ['staff', 'teacher', 'lecturer', 'admin'] or getattr(user, 'is_staff', False):
         return qs.order_by('created_at')
 
-    # 3. RBAC: Student Visibility Logic
-    # Students see their own comments OR comments from a teacher
-    criteria = Q(author=user) | Q(author__role__in=['teacher', 'lecturer'])
+    # 3. RBAC: "WhatsApp Style" for Tasks
+    # If the target is a Task (Unit discussion), allow everyone to see all comments
+    if target_object.__class__.__name__ == 'Task':
+        return qs.order_by('created_at')
+
+    # For Submissions (Private Feedback), keep strict visibility
+    criteria = Q(author=user) | Q(author__role__in=['staff', 'teacher', 'lecturer'])
 
     # Modular Check: If the object has study groups, allow members to see each other's work
     if hasattr(target_object, 'study_groups'):

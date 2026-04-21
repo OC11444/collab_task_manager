@@ -1,3 +1,4 @@
+from django.apps import apps
 from rest_framework import serializers
 
 from .models import Task, TaskSubmission
@@ -5,80 +6,94 @@ from .models import Task, TaskSubmission
 
 class TaskSerializer(serializers.ModelSerializer):
     created_by = serializers.ReadOnlyField(source='created_by.username')
-    unit = serializers.PrimaryKeyRelatedField(queryset=Task._meta.get_field('unit').remote_field.model.objects.all())
+    unit = serializers.PrimaryKeyRelatedField(
+        queryset=apps.get_model('academic', 'Unit').objects.all()
+    )
     unit_code = serializers.ReadOnlyField(source='unit.code')
     members = serializers.SerializerMethodField()
-    status = serializers.SerializerMethodField()
+    status = serializers.CharField(required=False)
+    comments = serializers.SerializerMethodField()
     time_left = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
         fields = [
-            'id',
-            'title',
-            'description',
-            'due_date',
-            'priority',
-            'created_by',
-            'unit',
-            'unit_code',
-            'members',
-            'status',
-            'time_left',
-            'allow_late_submissions',
+            'id', 'title', 'description', 'due_date', 'priority',
+            'created_by', 'unit', 'unit_code', 'members',
+            'status', 'comments', 'time_left', 'allow_late_submissions',
         ]
-        read_only_fields = ['created_by', 'unit_code', 'members','time_left']
+        read_only_fields = ['created_by', 'unit_code', 'members', 'time_left', 'comments']
+
+    def get_comments(self, obj):
+        # Lazy import to maintain Modular Monolith boundaries
+        from comments_notifications.selectors import get_comments_for_object
+        from comments_notifications.serializers import CommentSerializer
+
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return []
+
+        comments = get_comments_for_object(target_object=obj, user=request.user)
+        return CommentSerializer(comments, many=True, context=self.context).data
 
     def validate_unit(self, value):
         request = self.context.get('request')
-        user = getattr(request, 'user', None)
+        if request and request.user and not request.user.is_staff:
+            # Query the Enrollment model directly to avoid relationship attribute errors
+            Enrollment = apps.get_model('academic', 'Enrollment')
+            if not Enrollment.objects.filter(unit=value, student=request.user).exists():
+                raise serializers.ValidationError("You are not enrolled in this unit.")
+        return value
 
-        if not user or not user.is_authenticated:
-            raise serializers.ValidationError("Authentication is required.")
-
-        lecturer_field = value._meta.get_field('lecturer')
-        lecturer_id = getattr(value, lecturer_field.attname, None)
-
-        if lecturer_id != user.id:
-            raise serializers.ValidationError(
-                "You are not authorized to create tasks for this unit."
-            )
-
+    def validate_status(self, value):
+        valid_statuses = {
+            TaskSubmission.STATUS_TO_DO,
+            TaskSubmission.STATUS_IN_PROGRESS,
+            TaskSubmission.STATUS_DONE,
+        }
+        if value not in valid_statuses:
+            raise serializers.ValidationError("Invalid status value.")
         return value
 
     def get_members(self, obj):
-        members = obj.study_groups.values_list('members__username', flat=True).distinct()
-        return list(members)
+        # Get the model and query it directly to find students in this unit
+        Enrollment = apps.get_model('academic', 'Enrollment')
+        enrollments = Enrollment.objects.filter(unit=obj.unit)
+        return [e.student.username for e in enrollments]
 
     def get_status(self, obj):
         request = self.context.get('request')
-
         if not request or not request.user.is_authenticated:
-            return 'To Do'
+            return TaskSubmission.STATUS_TO_DO
 
         submission = obj.submissions.filter(student=request.user).first()
-
-        if not submission:
-            return 'To Do'
-
-        status_map = {
-            'to_do': 'To Do',
-            'in_progress': 'In Progress',
-            'done': 'Done',
-        }
-        return status_map.get(submission.status, 'To Do')
+        return submission.status if submission else TaskSubmission.STATUS_TO_DO
 
     def get_time_left(self, obj):
-        from django.utils import timezone
+        if not obj.due_date:
+            return None
 
-        now = timezone.now()
-        if obj.due_date > now:
-            diff = obj.due_date - now
-            if diff.days > 0:
-                return f"{diff.days}d left"
-            hours = diff.seconds // 3600
-            return f"{hours}h left"
-        return "Expired"
+        from django.utils import timezone
+        delta = obj.due_date - timezone.now()
+        return max(int(delta.total_seconds()), 0)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['status'] = self.get_status(instance)
+        return data
+
+    def update(self, instance, validated_data):
+        new_status = validated_data.pop('status', None)
+        request = self.context.get('request')
+
+        if new_status is not None and request and request.user.is_authenticated and not request.user.is_staff:
+            TaskSubmission.objects.update_or_create(
+                task=instance,
+                student=request.user,
+                defaults={'status': new_status},
+            )
+
+        return super().update(instance, validated_data)
 
 
 class TaskSubmissionSerializer(serializers.ModelSerializer):
@@ -89,46 +104,7 @@ class TaskSubmissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskSubmission
         fields = [
-            'id',
-            'task',
-            'task_title',
-            'student',
-            'submission_link',
-            'status',
-            'grade',
-            'feedback',
-            'submitted_at',
-            'is_late',
-
+            'id', 'task', 'task_title', 'student', 'submission_link',
+            'status', 'grade', 'feedback', 'submitted_at', 'is_late',
         ]
         read_only_fields = ['student', 'grade', 'feedback', 'submitted_at', 'is_late']
-
-    def validate(self, data):
-        request = self.context.get('request')
-        instance = getattr(self, 'instance', None)
-        task = data.get('task') or (instance.task if instance else None)
-
-        if not request or not task:
-            return data
-
-        submission_link = data.get(
-            'submission_link',
-            instance.submission_link if instance else None,
-        )
-        status = data.get('status', instance.status if instance else None)
-
-        if status == 'done' and not submission_link:
-            raise serializers.ValidationError(
-                {"submission_link": "You cannot mark a task as Done without a submission link."}
-            )
-
-        user = request.user
-        is_enrolled = user.enrollments.filter(unit=task.unit).exists()
-        is_in_group = task.study_groups.filter(members=user).exists()
-
-        if not (is_enrolled or is_in_group):
-            raise serializers.ValidationError(
-                {"task": "You are not authorized to submit for this task."}
-            )
-
-        return data
