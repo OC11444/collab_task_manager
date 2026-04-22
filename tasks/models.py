@@ -1,10 +1,19 @@
 #tasks/models.py
+"""
+Module: tasks
+Author: Mecrimson
+
+Defines the database schema for assignments and student submissions. We separate the main Task from the TaskSubmission so that one assignment can be tracked individually by hundreds of students without duplicating the main instructions.
+"""
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
 
 class Task(models.Model):
+    """
+        The main assignment template created by a lecturer. It holds the global rules like due dates and priority for everyone enrolled in the unit.
+        """
     PRIORITY_HIGH = 'High'
     PRIORITY_MEDIUM = 'Medium'
     PRIORITY_LOW = 'Low'
@@ -31,6 +40,9 @@ class Task(models.Model):
 
 
 class TaskSubmission(models.Model):
+    """
+        Acts as a pivot table connecting a specific student to a specific task. This is where we store their personal Kanban status, their uploaded work link, and the grade the lecturer gives them.
+        """
     STATUS_TO_DO = 'to_do'
     STATUS_IN_PROGRESS = 'in_progress'
     STATUS_DONE = 'done'

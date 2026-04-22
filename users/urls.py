@@ -1,4 +1,10 @@
 # users/urls.py
+"""
+Module: users
+Author: Mich omolo
+
+Maps the URL endpoints for our authentication system. We route login, signup, email verification, and the heartbeat endpoint that tracks who is currently online in the system.
+"""
 from django.urls import path
 from .views import LoginSyncView, SignupView, VerifyEmailView, UserMeView, TeamPresenceView, TeamPresenceView, TeamPresenceView
 

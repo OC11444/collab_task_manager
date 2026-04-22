@@ -1,3 +1,9 @@
+"""
+Module: tasks
+Author: Mecrimson
+
+We originally used Django signals to handle notifications, but it led to bugs where alerts would fire twice. We keep this file to explicitly intercept and pass on the comment_created signal, ensuring all notification logic stays visible inside the views.
+"""
 from django.dispatch import receiver
 
 from comments_notifications.signals import comment_created

@@ -1,3 +1,9 @@
+"""
+Module: comments_notifications
+Author: OC11444
+
+Defines the database tables for our messaging and alert system. We use Django's GenericForeignKey here so we can attach comments and notifications to any object in the system without writing new tables for every single feature.
+"""
 from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -5,6 +11,9 @@ from django.contrib.contenttypes.models import ContentType
 
 
 class Comment(models.Model):
+    """
+        Stores discussion threads. We implemented soft deletes here so if an admin removes a bad comment, it just hides it instead of breaking the entire database tree of replies.
+        """
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -37,8 +46,10 @@ class Comment(models.Model):
     class Meta:
         ordering = ['created_at']
 
-    class Meta:
-        ordering = ['-created_at']  # newest comments first
+
+
+    #class Meta:
+        #ordering = ['-created_at']  # newest comments first
 
     def __str__(self):
         target = self.content_object.__class__.__name__ if self.content_object else "Object"
@@ -47,6 +58,9 @@ class Comment(models.Model):
 
 
 class Notification(models.Model):
+    """
+        Keeps track of user alerts. We link the notification directly to the target object so the frontend knows exactly which page to load when the user clicks the alert.
+        """
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

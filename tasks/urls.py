@@ -1,4 +1,10 @@
-#tasks/urls.py
+"""
+Module: tasks
+Author: Mecrimson
+
+Maps the API endpoints for assignments. We register the submissions route before the tasks route to prevent the Django URL router from accidentally treating a submission action as a task ID.
+"""
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import TaskViewSet, TaskSubmissionViewSet

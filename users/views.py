@@ -1,3 +1,9 @@
+"""
+Module: users
+Author: Mich omolo
+
+Handles the core business logic for user accounts. This includes processing logins, managing the two-step email verification for new signups, and keeping track of user presence for the live dashboard.
+"""
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -13,6 +19,9 @@ from .serializers import UserSerializer
 
 
 class LoginSyncView(APIView):
+    """
+        Process user login requests. If the user is valid, we hand back their JWT access tokens and role so the frontend knows what dashboard to load for them.
+        """
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -55,6 +64,9 @@ class LoginSyncView(APIView):
 
 
 class SignupView(APIView):
+    """
+        Starts the registration process. We do not create the full user account right away. Instead, we save them as a pending user and trigger an email with a verification link to prove they own the email address.
+        """
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -84,6 +96,9 @@ class SignupView(APIView):
 
 
 class VerifyEmailView(APIView):
+    """
+        Catches the verification link from the user's email. Once we confirm the token is valid, we move them from a pending state to a fully provisioned system user and log them in automatically.
+        """
     permission_classes = [AllowAny]
 
     def get(self, request, token):
@@ -123,9 +138,8 @@ class VerifyEmailView(APIView):
 
 class UserMeView(APIView):
     """
-    Returns the profile of the currently authenticated user.
-    Requires a valid JWT token in the Authorization header.
-    """
+        A simple endpoint for the frontend to ask 'who am I?'. It returns the profile details of whoever holds the current active JWT token.
+        """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -134,9 +148,9 @@ class UserMeView(APIView):
 
 class TeamPresenceView(APIView):
     """
-    1. Updates the requesting user's 'last_seen' timestamp.
-    2. Returns a list of all users and their online status (active in last 5 mins).
-    """
+        Acts as a heartbeat for the live dashboard. When a user pings this, we update their last seen timestamp. We then return a list of everyone who has been active in the last 5 minutes so the frontend can show the online status indicators.
+        """
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request):

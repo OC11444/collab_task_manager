@@ -1,11 +1,17 @@
+"""
+Module: reports
+Author: Tipeii
+
+Converts the raw database snapshot records into clean JSON objects for the frontend dashboard to display.
+"""
 from rest_framework import serializers
 from .models import UnitPerformanceSnapshot
 
 class UnitDashboardSerializer(serializers.ModelSerializer):
     """
-    Serializes the latest snapshot and calculates trend indicators
-    for the Staff Dashboard.
-    """
+        Formats the performance metrics for the staff view. We also calculate a trend indicator here so the lecturer knows if things are improving or getting worse.
+        """
+
     trend_submission_rate = serializers.SerializerMethodField()
 
     class Meta:
@@ -23,9 +29,9 @@ class UnitDashboardSerializer(serializers.ModelSerializer):
 
     def get_trend_submission_rate(self, obj):
         """
-        Logic to compare current snapshot with the previous one
-        to calculate the trend percentage.
-        """
+            Looks up the previous historical snapshot for this unit and compares it to the current one. This gives the frontend a simple percentage difference to show as an up or down arrow.
+            """
+
         previous_snapshot = UnitPerformanceSnapshot.objects.filter(
             unit_id=obj.unit_id,
             timestamp__lt=obj.timestamp

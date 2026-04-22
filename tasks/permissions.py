@@ -1,11 +1,17 @@
+"""
+Module: tasks
+Author: Mecrimson
+
+Acts as the security gatekeeper for the module. We explicitly check roles and enrollments here so that students cannot bypass the system to edit assignments or view other people's grades.
+"""
 from rest_framework import permissions
 
 
 class IsStaffOrReadOnly(permissions.BasePermission):
     """
-    Allows staff members to create/edit tasks,
-    but students can only view them.
-    """
+        Prevents students from altering global assignment details. They are allowed to read the instructions, but only staff members can change due dates or descriptions.
+        """
+
 
     def has_permission(self, request, view):
         # Authenticated users can always use 'SAFE' methods (GET, HEAD, OPTIONS)
@@ -18,9 +24,8 @@ class IsStaffOrReadOnly(permissions.BasePermission):
 
 class IsOwnerOrStaff(permissions.BasePermission):
     """
-    Used for submissions: Only the student who owns the submission
-    or a staff member can view/edit the specific object.
-    """
+        Enforces privacy for student grades and submissions. A student can only load their own specific submission record, while lecturers are allowed to load anyone's record to grade it.
+        """
 
     def has_object_permission(self, request, view, obj):
         # Staff can see everything

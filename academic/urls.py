@@ -1,4 +1,9 @@
-#academic/urls.py
+"""
+Module: academic
+Author: Griffins Majaliwa
+
+Registers the API routes for the academic hierarchy. We use a DefaultRouter here because it automatically handles all the standard create, read, update, and delete endpoints for our views.
+"""
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (

@@ -1,4 +1,9 @@
-# comments_notifications/views.py
+"""
+Module: comments_notifications
+Author: OC11444
+
+Connects the frontend HTTP requests to our backend comment and notification services.
+"""
 from typing import Any, Type
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,8 +19,9 @@ from .models import Comment, Notification
 
 class BaseCommentAPIView(APIView):
     """
-    Base class to handle common logic for comments on different models.
-    """
+        A reusable parent class that dynamically figures out which type of object the user is trying to comment on based on the URL, handling the routing automatically.
+        """
+
     permission_classes = [permissions.IsAuthenticated]
     model_lookup: str = "" # Defined in subclasses
 
@@ -82,8 +88,9 @@ class TaskSubmissionCommentAPIView(BaseCommentAPIView):
 
 class NotificationListView(APIView):
     """
-    Returns all notifications for the logged-in user.
-    """
+        Grabs the user's unread and read alerts, sorted by newest first, to populate their navigation bar dropdown.
+        """
+
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -95,8 +102,8 @@ class NotificationListView(APIView):
 
 class MarkNotificationReadView(APIView):
     """
-    Sets a specific notification status to 'read'.
-    """
+        Updates the database status when a user clicks on an alert so it stops showing up with an unread badge on the frontend.
+        """
     permission_classes = [permissions.IsAuthenticated]
 
     # Changed from post to patch to match the frontend axios request
