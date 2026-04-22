@@ -52,10 +52,16 @@ def provision_user_from_legacy(email, role, hashed_password):
     if not legacy_user:
         raise ValueError("Legacy record not found for this email.")
 
+    # 🛡️ ARCHITECTURAL FIX: Define Django's internal flags based on our business roles
+    is_staff_flag = (role in ['staff', 'admin'])
+    is_superuser_flag = (role == 'admin')
+
     user = User(
         username=legacy_user["username"],
         email=email,
         role=role,
+        is_staff=is_staff_flag,        # Added this
+        is_superuser=is_superuser_flag # Added this
     )
 
     # Map legacy ID based on role
@@ -99,7 +105,7 @@ def send_verification_email(pending_user, request):
         recipient_list=[pending_user.email],
     )
     # Also print to terminal for easy dev testing
-    print(f"\n--- 📧 VERIFICATION LINK ---")
+    print(f"\n--- VERIFICATION LINK ---")
     print(f"To: {pending_user.email}")
     print(f"Link: {verify_link}")
     print(f"---------------------------\n")

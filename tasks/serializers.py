@@ -83,10 +83,11 @@ class TaskSerializer(serializers.ModelSerializer):
         return data
 
     def update(self, instance, validated_data):
-        new_status = validated_data.pop('status', None)
         request = self.context.get('request')
+        new_status = validated_data.pop('status', None)
 
-        if new_status is not None and request and request.user.is_authenticated and not request.user.is_staff:
+        #  ARCHITECTURAL FIX: Allow all authenticated users to track personal progress
+        if new_status is not None and request and request.user.is_authenticated:
             TaskSubmission.objects.update_or_create(
                 task=instance,
                 student=request.user,

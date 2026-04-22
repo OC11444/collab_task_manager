@@ -55,6 +55,7 @@ SIMPLE_JWT = {
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -123,16 +124,31 @@ DEFAULT_FROM_EMAIL = f"Collab Admin <{os.getenv('EMAIL_HOST_USER')}>"
 
 # settings.py
 
-# Add 8080 to the allowed list
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:8080",
-    "https://oc11444.github.io",
-]
+#  THE AUTO-TOGGLE FOR CORS
+if DEBUG:
+    # --- DEVELOPMENT MODE ---
+    # Allow local ports and your dynamic network IP
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://192.168.100.108:8080",  # Update this if your Wi-Fi changes
+    ]
+else:
+    # --- PRODUCTION MODE ---
+    # Strictly limit to your live frontend domains (Base URLs ONLY, no paths!)
+
+    # You can also use an environment variable here if you prefer:
+    # live_frontend = os.environ.get("CORS_PRODUCTION_URL", "https://oc11444.github.io")
+
+    CORS_ALLOWED_ORIGINS = [
+        "https://oc11444.github.io",
+        # If you buy a custom domain later, add it here:
+        # "https://www.collabtask.com",
+    ]
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -164,6 +180,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

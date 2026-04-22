@@ -19,9 +19,7 @@ class CommentSerializer(serializers.ModelSerializer):
         user = request.user if request else None
         replies = obj.replies.all()
 
-        # RBAC: If the user is a student, filter the replies they can see
-        if getattr(user, 'role', '') == 'student':
-            replies = replies.filter(Q(author=user) | Q(author__role='lecturer'))
+
 
         if replies.exists():
             # Pass the context down so deeply nested replies stay secure
