@@ -1,3 +1,9 @@
+"""
+Module: reports
+Author: Tipeii
+
+Provides the API endpoints that the frontend calls to load the analytical dashboards and summary reports.
+"""
 from rest_framework import generics, views  # Added views
 from rest_framework.response import Response  # Added Response
 from rest_framework.permissions import IsAuthenticated
@@ -29,8 +35,8 @@ class LecturerDashboardView(generics.ListAPIView):
 
 class TaskSummaryReportView(views.APIView):
     """
-    New View: Pulls metrics for a specific task.
-    """
+        Calculates and returns the specific completion stats for a single assignment. It pulls from different apps to figure out how many enrolled students actually submitted the work.
+        """
     permission_classes = [IsAuthenticated]
 
     def get(self, request, task_id):

@@ -1,3 +1,9 @@
+"""
+Module: reports
+Author: Tipeii
+
+Handles the heavy math and data aggregation. We keep this separate from the views so we can easily run these calculations in the background later using something like Celery.
+"""
 from datetime import timedelta
 
 from django.apps import apps
@@ -8,6 +14,9 @@ from .models import UnitPerformanceSnapshot
 
 
 class ReportService:
+    """
+        Groups all our reporting logic together. It cross-references data from the academic and tasks modules to figure out how students are performing.
+        """
     @classmethod
     def calculate_unit_metrics(cls, unit_id):
         Enrollment = apps.get_model('academic', 'Enrollment')
@@ -45,7 +54,9 @@ class ReportService:
 
     @classmethod
     def create_unit_snapshot(cls, unit_id, lecturer_id, snapshot_type='progress'):
-        """Persistence Layer: Saves the calculated metrics to the DB."""
+        """
+            Takes the calculated math and actually saves it to the database so we have a permanent historical record to look back on.
+            """
         metrics = cls.calculate_unit_metrics(unit_id)
 
         return UnitPerformanceSnapshot.objects.create(

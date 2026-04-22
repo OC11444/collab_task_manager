@@ -77,4 +77,4 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/academic-task-manager:latest
+            ghcr.io/oc11444/academic-task-manager:latest
