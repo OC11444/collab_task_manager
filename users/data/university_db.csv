@@ -1,5 +1,5 @@
 email,username,role,registration_number
-james24.gitau@student.school.ac.ke,james_g,student,STU-2026-001
+james24.gitau@student.cuk.ac.ke,james_g,staff,STU-2026-001
 sarah.jane@student.school.ac.ke,sarah_j,student,STU-2026-002
 dr.smith@staff.school.ac.ke,smith_admin,staff,EMP-99-001
 lecturer_test@staff.school.ac.ke,lecturer_test,staff,EMP-99-002
@@ -24,3 +24,4 @@ prof.xavier@staff.school.ac.ke,xavier_prof,staff,EMP-99-011
 dr.strange@staff.school.ac.ke,strange_doc,staff,EMP-99-012
 prof.mcgonagall@staff.school.ac.ke,minerva_m,staff,EMP-99-013
 sarah@student.school.ac.ke,Sarah_Barbra,student,EMP-2026-020,,,
+gitaujames2005@gmail.com,gitau,student,EMP-2026-025,,,
