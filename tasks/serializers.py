@@ -1,3 +1,9 @@
+"""
+Module: tasks
+Author: Mecrimson
+
+Packages the database objects into JSON. We do a lot of dynamic lookups here, like checking if the requesting student has started the task, so the frontend gets exactly what it needs to render the Kanban board properly.
+"""
 from django.apps import apps
 from rest_framework import serializers
 
@@ -83,6 +89,9 @@ class TaskSerializer(serializers.ModelSerializer):
         return data
 
     def update(self, instance, validated_data):
+        # We override the update method so that when a student drags a task on the Kanban board,
+        # it updates their personal TaskSubmission status instead of trying to alter the global Task object.
+
         request = self.context.get('request')
         new_status = validated_data.pop('status', None)
 

@@ -1,3 +1,9 @@
+"""
+Module: reports
+Author: Tipeii
+
+Routes the frontend API calls to the correct reporting views.
+"""
 from django.urls import path
 from .views import LecturerDashboardView, TaskSummaryReportView,GlobalUnitReportView # Added TaskSummaryReportView
 

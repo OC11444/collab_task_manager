@@ -1,4 +1,9 @@
-#academic/serializers.py
+"""
+Module: academic
+Author: Griffins Majaliwa
+
+Transforms our database structures into JSON objects for the frontend. We pull in related names (like the course name for a unit) so the React app doesn't have to make extra API requests just to figure out text labels.
+"""
 from rest_framework import serializers
 from .models import School, Department, Course, Unit, Enrollment
 

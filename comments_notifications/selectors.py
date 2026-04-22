@@ -1,4 +1,9 @@
-# comments_notifications/selectors.py
+"""
+Module: comments_notifications
+Author: OC11444
+
+Handles the data retrieval for comments. We put the privacy wall logic here to keep our views clean and ensure data security is applied at the query level.
+"""
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.contrib.auth import get_user_model
@@ -7,6 +12,9 @@ from .models import Comment
 User = get_user_model()
 
 def get_comments_for_object(target_object, user):
+    """
+        Applies role-based access control to the comment threads. Staff members can see the whole conversation, but students are restricted to seeing only their own comments or threads shared within their specific study group.
+        """
     content_type = ContentType.objects.get_for_model(target_object, for_concrete_model=False)
 
     # 1. Base query: Top-level comments only

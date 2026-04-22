@@ -1,3 +1,9 @@
+"""
+Module: tasks
+Author: Mecrimson
+
+The core logic brain of the module. This handles creating assignments, filtering the lists so students only see work for units they actually take, and firing off alerts when someone submits an assignment or drops a comment.
+"""
 from django.db.models import Q
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -19,8 +25,8 @@ from .serializers import TaskSerializer, TaskSubmissionSerializer
 
 class CommentActionMixin:
     """
-    Mixin to provide comment functionality to ViewSets.
-    """
+        Since both Tasks and TaskSubmissions need to accept comments, we built this mixin to avoid writing the same comment logic twice. It catches the request, saves the comment, and figures out who needs a notification.
+        """
     @action(detail=True, methods=['get', 'post'], permission_classes=[IsAuthenticated])
     def comments(self, request, pk=None):
         from comments_notifications.selectors import get_comments_for_object
@@ -84,6 +90,9 @@ class CommentActionMixin:
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 class TaskViewSet(CommentActionMixin, viewsets.ModelViewSet):
+    """
+        Handles the lifecycle of the main assignments. The queryset is heavily filtered here so a student never sees an assignment for a class they are not enrolled in.
+        """
     serializer_class = TaskSerializer
     permission_classes = [IsStaffOrStudentEnrolled]
 
@@ -133,6 +142,9 @@ class TaskViewSet(CommentActionMixin, viewsets.ModelViewSet):
 
 
 class TaskSubmissionViewSet(CommentActionMixin, viewsets.ModelViewSet):
+    """
+        Manages the personal progress of students. When a student hits 'Submit', this view records their link and notifies the lecturer that the work is ready to be graded.
+        """
     serializer_class = TaskSubmissionSerializer
     permission_classes = [IsOwnerOrStaff]
 

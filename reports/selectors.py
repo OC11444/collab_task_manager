@@ -1,11 +1,17 @@
+"""
+Module: reports
+Author: Tipeii
+
+Extracts complex database queries out of the views. This keeps our views clean and makes it easier to reuse these specific data fetches elsewhere.
+"""
 from django.db.models import Max
 from .models import UnitPerformanceSnapshot
 
 def get_latest_unit_snapshots_for_lecturer(user):
     """
-    Business Logic: Retrieve the most recent snapshot for every unit
-    associated with the given lecturer.
-    """
+        Since we store multiple historical snapshots for every unit, this function filters through the noise to grab only the single most recent record for each unit taught by this specific lecturer.
+        """
+
     # 1. Get the latest snapshot ID for each unit taught by this lecturer
     latest_snapshot_ids = (
         UnitPerformanceSnapshot.objects
