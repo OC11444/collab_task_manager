@@ -7,6 +7,17 @@ from django.apps import apps  # Safer for Modular Monolith cross-app access
 from .serializers import UnitDashboardSerializer
 from .selectors import get_latest_unit_snapshots_for_lecturer
 
+from rest_framework import status
+from rest_framework.views import APIView
+
+class GlobalUnitReportView(APIView):
+    def get(self , request ,*args , **kwargs):
+        return Response({"message": "Global Unit Report Placeholder"}, status=status.HTTP_200_OK)
+
+
+
+
+
 
 class LecturerDashboardView(generics.ListAPIView):
     serializer_class = UnitDashboardSerializer

@@ -1,11 +1,12 @@
 # comments_notifications/urls.py
 from django.urls import path
-from .views import TaskCommentAPIView, TaskSubmissionCommentAPIView
+from .views import (
+    NotificationListView,
+    MarkNotificationReadView,
+)
 
 urlpatterns = [
-    # Matches reverse("task-comments", kwargs={"pk": self.task.id})
-    path('task/<int:pk>/', TaskCommentAPIView.as_view(), name='task-comments'),
-
-    # Matches reverse("tasksubmission-comments", kwargs={"pk": self.submission.id})
-    path('submission/<int:pk>/', TaskSubmissionCommentAPIView.as_view(), name='tasksubmission-comments'),
+    # Notifications
+    path('', NotificationListView.as_view(), name='notification-list'),
+    path('<int:pk>/', MarkNotificationReadView.as_view(), name='notification-detail'),
 ]

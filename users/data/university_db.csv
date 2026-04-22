@@ -4,3 +4,23 @@ sarah.jane@student.school.ac.ke,sarah_j,student,STU-2026-002
 dr.smith@staff.school.ac.ke,smith_admin,staff,EMP-99-001
 lecturer_test@staff.school.ac.ke,lecturer_test,staff,EMP-99-002
 student_test@student.school.ac.ke,student_test,student,STU-2026-003
+student@student.school.ac.ke,Stud_1,student,STU-2026-009
+teacher_1@university.edu,teacher_1,staff,EMP-2026-005
+teacher@university.edu,teacher_2,staff,EMP-2026-006
+teacher_sync@university.edu,teacher_sync,staff,EMP-2026-007
+student_sync@university.edu,student_sync,student,STU-2026-010
+new_test@university.edu,new_test,student,STU-2026-012
+new_user@uni.edu,new_user,student,STU-2026-011
+final_test@staff.edu,final,staff,EMP-99-010
+correction@staff.edu,correction ,staff,EMP-2026-015
+dr.Mary@staff.school.ac.ke,dr.Mary,staff,EMP-2026-016alice.w@student.school.ac.ke,alice_w,student,STU-2026-010
+bob.b@student.school.ac.ke,bob_b,student,STU-2026-011
+charlie.c@student.school.ac.ke,charlie_c,student,STU-2026-012
+diana.p@student.school.ac.ke,diana_p,student,STU-2026-013
+evan.e@student.school.ac.ke,evan_e,student,STU-2026-014
+fiona.f@student.school.ac.ke,fiona_f,student,STU-2026-015
+dr.brown@staff.school.ac.ke,brown_admin,staff,EMP-99-010
+prof.xavier@staff.school.ac.ke,xavier_prof,staff,EMP-99-011
+dr.strange@staff.school.ac.ke,strange_doc,staff,EMP-99-012
+prof.mcgonagall@staff.school.ac.ke,minerva_m,staff,EMP-99-013
+sarah@student.school.ac.ke,Sarah_Barbra,student,EMP-2026-020,,,

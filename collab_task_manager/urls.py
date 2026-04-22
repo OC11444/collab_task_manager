@@ -1,3 +1,4 @@
+#collab_task_manager/urls.py
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework import permissions
@@ -25,7 +26,7 @@ urlpatterns = [
     path('api/academic/', include('academic.urls')),
     path('api/tasks/', include('tasks.urls')),
     path('api/reports/', include('reports.urls')),
-    path('api/comments/', include('comments_notifications.urls')),
+    path('api/notifications/', include('comments_notifications.urls')),
 
     # --- 🔐 Auth & Documentation ---
     path('api-auth/', include('rest_framework.urls')),  # Standard DRF login

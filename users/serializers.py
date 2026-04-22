@@ -13,10 +13,17 @@ class IdPSyncSerializer(serializers.Serializer):
     role = serializers.CharField(required=True)
 
     def validate(self, data):
+        # 🛡️ SECURITY: Ensure the frontend is actually sending 'confirm_password'
+        # if the user doesn't exist in our DB yet.
+        email = data.get('email')
         password = data.get('password')
         confirm_password = data.get('confirm_password')
 
-        # Logic check: If confirm_password is provided, it MUST match the password
+        user_exists = User.objects.filter(email=email).exists()
+
+        if not user_exists and not confirm_password:
+            raise ValidationError({"confirm_password": "New users must confirm their password."})
+
         if confirm_password and password != confirm_password:
             raise ValidationError({"confirm_password": "Passwords do not match."})
 

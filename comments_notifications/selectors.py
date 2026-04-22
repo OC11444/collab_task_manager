@@ -16,14 +16,33 @@ def get_comments_for_object(target_object, user):
         parent__isnull=True
     ).select_related('author')
 
-    # 2. RBAC: Teachers and Lecturers see all comments
+    # 2. RBAC: Staff and Admins see all comments
     user_role = getattr(user, 'role', '').lower()
-    if user_role in ['teacher', 'lecturer', 'admin']:
+    if user_role in ['staff', 'teacher', 'lecturer', 'admin'] or getattr(user, 'is_staff', False):
         return qs.order_by('created_at')
+        # 3. RBAC: Privacy Wall Logic
+        # Everyone sees their own comments and anything from a Teacher/Lecturer
+        criteria = Q(author=user) | Q(author__role__in=['staff', 'teacher', 'lecturer'])
 
-    # 3. RBAC: Student Visibility Logic
-    # Students see their own comments OR comments from a teacher
-    criteria = Q(author=user) | Q(author__role__in=['teacher', 'lecturer'])
+        # ACCESS RULE A: Individual Privacy
+        # If I am the specific student assigned to this task, I see the whole conversation
+        if hasattr(target_object, 'assigned_to') and target_object.assigned_to == user:
+            return qs.order_by('created_at')
+
+        # ACCESS RULE B: Group Collaboration (WhatsApp Style)
+        # If this object involves study groups, members of my group can see the discussion
+        if hasattr(target_object, 'study_groups'):
+            shared_groups = target_object.study_groups.filter(members=user)
+            if shared_groups.exists():
+                # Allow visibility for anyone in my shared group
+                criteria |= Q(author__in=User.objects.filter(study_groups__in=shared_groups))
+
+        return qs.filter(criteria).distinct().order_by('created_at')
+
+
+
+    # For Submissions (Private Feedback), keep strict visibility
+    criteria = Q(author=user) | Q(author__role__in=['staff', 'teacher', 'lecturer'])
 
     # Modular Check: If the object has study groups, allow members to see each other's work
     if hasattr(target_object, 'study_groups'):

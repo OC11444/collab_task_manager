@@ -1,0 +1,40 @@
+# Local Environment & Secrets
+.env
+.env.*
+!.env.example
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Django
+db.sqlite3
+*.log
+staticfiles/
+media/
+
+# Tooling / caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Version Control internals
+.git/
+.github/
+
+# Local utility / generated files
+detected-requirements.txt
+ctm_backup.sql
+
+# Keep placeholder files so empty app/module dirs stay tracked
+!.gitkeep
