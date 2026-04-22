@@ -51,7 +51,10 @@ class CommentPrivacyAndNotificationTests(APITestCase):
 
         # 4. Setup Tasks with REQUIRED due_date
         self.task = Task.objects.create(
-            title="Task", created_by=self.teacher, unit=self.unit,
+            title="Task",
+            created_by=self.teacher,
+            unit=self.unit,
+
             due_date=timezone.now() + timedelta(days=7)
         )
         self.group_task = Task.objects.create(

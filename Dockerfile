@@ -5,6 +5,7 @@ ENV PYTHONUNBUFFERED 1
 
 WORKDIR /app
 
+# Install system dependencies for MySQL and health checks
 RUN apt-get update && apt-get install -y \
     default-libmysqlclient-dev \
     build-essential \
@@ -16,6 +17,7 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install gunicorn
 
+# Corrected COPY command
 COPY . /app/
 
 RUN chmod +x /app/entrypoint.sh
