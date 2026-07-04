@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'anymail',
     'django.contrib.staticfiles',
 ]
 
@@ -111,15 +112,22 @@ else:
     }
 
 
-# Email Settings
-EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = f"Collab Admin <{os.getenv('EMAIL_HOST_USER')}>"
+# Email Settings (Cloud-Native API via Brevo/Anymail)
 
+ANYMAIL = {
+    # Pulls your secret API key from Render's environment variables
+    "SENDINBLUE_API_KEY": os.getenv("BREVO_API_KEY"),
+}
+
+# Routes all send_mail() calls through the Brevo HTTP API
+EMAIL_BACKEND = os.getenv(
+    'EMAIL_BACKEND',
+    'anymail.backends.sendinblue.EmailBackend'
+)
+
+# This must EXACTLY match the email address you verified on your Brevo account
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+DEFAULT_FROM_EMAIL = f"Collab Admin <{EMAIL_HOST_USER}>"
 
 # CORS CONFIGURATION
 # Always allow production alongside local dev environments
