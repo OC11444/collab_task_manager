@@ -1,228 +1,85 @@
-# 🧠📋 Collaborative Task Manager
+# Collaborative Academic Task Manager
 
-Welcome to the Collaborative Task Manager project 🤝. This guide will walk you through the initial setup to get your local development environment up and running, explain our modular architecture, and outline our next steps ⚙️💻.
+Hey! Welcome to our **Collaborative Academic Task Manager**. We built this project to help students and lecturers keep track of class assignments and unit work without getting confused. 
 
----
+## How to Log In
 
-## 🚀 Developer Onboarding Guide
+We built the authentication system using Django and JWT (JSON Web Tokens). 
 
-### 1. 📥 Clone the Repository
+Here is exactly how it works when a new user tries to log in:
+1. The app checks your email against a CSV registry (`university_db.csv`) to make sure you are a real student or staff member.
+2. It also checks that your role matches what we have on file.
+3. If everything is correct, the app puts your account in a pending state and sends you to a "Check Your Email" page.
+4. You get an email with a verification link. 
+5. Once you click the link in your email, your real account is created, and you are officially logged in with a JWT!
 
-Download the project blueprints to your local machine and navigate into the project directory:
+### Login/Registration Flow
 
-```bash
-git clone <repository-url>
-cd collab_task_manager
+```mermaid
+sequenceDiagram
+    participant User
+    participant App
+    participant CSV Registry
+    participant Email
+
+    User->>App: Enter email, password, and role
+    App->>CSV Registry: Check if email and role exist
+    alt Match found
+        App->>User: Show "Check Your Email" page
+        App->>Email: Send verification link
+        User->>Email: Click the verification link
+        Email->>App: Token verified
+        App->>User: Account fully set up & Logged in (JWT)
+    else No match
+        App->>User: Show login error
+    end
 ```
 
----
+## The Dashboards
 
-### 2. 🌿 Create a Feature Branch
+There are two main dashboards depending on your account role.
 
-To maintain a clean workflow 🧼, never work directly on the main or dev branches 🚫. Create a new branch for the specific feature you are building:
+### Student Dashboard
+* **My Tasks**: Shows you a list of all your assignments. You can see the due dates and whether the priority is High, Medium, or Low.
+* **Submit Work**: To submit an assignment, you just copy and paste a cloud link (like a Google Docs link or a GitHub repo link) into the system.
 
-```bash
-git checkout -b feature/your-feature-name
-# Example: git checkout -b feature/submit-button
+### Staff Dashboard
+* **Creating Tasks**: Lecturers can create an assignment for a specific unit, give it a due date, and decide if late submissions are allowed.
+* **Reviewing Work**: Staff can view the cloud links that students submit and leave a grade along with some text feedback.
+* **Kanban Board**: Lecturers and students can look at tasks as cards on a board and track their progress over time.
+
+### Task Progress Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> ToDo: Lecturer creates the task
+    ToDo --> InProgress: Student starts working on it
+    InProgress --> Done: Student submits the cloud link
+    Done --> Graded: Lecturer reviews and leaves a grade
+    Graded --> [*]
 ```
 
----
+## How to Use (For First-Time Students)
 
-### 3. 🐍 Set Up the Virtual Environment
+If you are a student logging in for the very first time, here is what you do:
 
-We use a virtual environment to keep dependencies isolated 🔒 and your system installation clean 🧹.
+1. Open the app and enter your university email and a password. Make sure to select the "student" role.
+2. If your email is listed in the university records, you'll be asked to check your email.
+3. Go to your email inbox, find the message from the app, and click the verification link.
+4. You will be logged in! Go to your **Student Dashboard** and look at **My Tasks** to see your assignments.
+5. When you start an assignment, change its status to "In Progress".
+6. When you are totally finished, paste the link to your work into the submission box and put the task in the "Done" pile.
+7. Check back later to see the grade and feedback your lecturer gave you.
 
-#### 💻 Mac/Linux:
+## Coding Setup
 
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
+We kept the tech stack straightforward for this project:
+* **Frontend**: We built the user interface with React.
+* **Backend**: We used Django (Python) to handle the database and API logic.
+* **Database**: We are using a MySQL database hosted on the cloud to store all the users and tasks.
 
-#### 🪟 Windows:
+## Deployment
 
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
-
----
-
-### 4. 📦 Install Dependencies
-
-Install Django, MySQL client, and all other required tools listed in the requirements file:
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-### 5. 🔐 Environment Variables (.env) Setup
-
-**CRITICAL:** We do not commit secrets to GitHub. You must create your own local environment file.
-
-#### Create the file:
-
-Copy the provided template to create your local `.env` file:
-
-```bash
-cp .env.example .env
-```
-
-#### Generate a Secret Key:
-
-Run this command in your terminal to generate a unique Django Secret Key, then copy and paste it into your `.env` file:
-
-```bash
-python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
-```
-
-#### Database Credentials:
-
-Update the `DB_PASSWORD` in your `.env` file to match your local MySQL root password.
-
-> Note: If on Mac/Linux, ensure `DB_UNIX_SOCKET` points to your correct MySQL socket (usually `/tmp/mysql.sock`).
-
----
-
-### 6. 🗄️ Build Your Local Database (MySQL)
-
-This project uses MySQL (not SQLite) to support advanced data aggregation.
-
-Ensure your local MySQL server is running, then generate your local database tables:
-
-```bash
-python manage.py migrate
-```
-
----
-
-### 7. 👤 Create Your Admin Account
-
-Create a local superuser account to access the Django admin panel 🛠️. Follow the terminal prompts:
-
-```bash
-python manage.py createsuperuser
-```
-
----
-
-### 8. ▶️ Run the Server
-
-Start the local development server to see the project in action 🚀:
-
-```bash
-python manage.py runserver
-```
-
-Once the server is running, open your browser 🌐 and navigate to:
-
-http://127.0.0.1:8000/admin
-
----
-
-## 🏗️ Architecture & Module Flow
-
-This project follows a **Modular Monolith pattern**. Apps should avoid directly importing models from other apps in order to reduce coupling.
-
-### Core patterns
-
-* **Selectors (`selectors.py`)**: Data fetching across app boundaries
-* **Services (`services.py`)**: Business logic and workflows (e.g., creating snapshots)
-* **Signals (`signals.py`)**: Cross-app notifications and event handling
-
-### Current app responsibilities
-
-* **Users module**: Authentication and role-aware access flows
-* **Academic module**: Enrollment-aware access control for units and learning structure
-* **Tasks module**: Assignment creation and submission management
-* **Comments & Notifications module**: Collaboration feedback and alerts
-* **Reports module**: Snapshot-based performance aggregation for dashboards
-
----
-
-## 🧪 Integration Testing Lifecycle
-
-Before pushing code, run our internal workflow test to ensure the lifecycle isn't broken:
-
-```bash
-python manage.py shell < check_db.py
-```
-
-### Platform flow
-
-* **Users Module**: Handles authentication and user role validation
-* **Academic Module**: Acts as the gatekeeper. Students should only interact with tasks for units they are enrolled in
-* **Tasks Module**: Manages assignments. Submissions are checked against the student's enrollment before being accepted
-* **Reports Module**: Aggregates platform data into snapshots to support efficient dashboard queries using MySQL aggregation
-
----
-
-## ⏭️ Next Phase: API & Frontend Integration
-
-With the backend structure in place, the next phase is frontend-facing API integration. Planned work includes:
-
-* Mapping backend DRF endpoints into an Axios frontend service layer
-* Handling JWT token-based authentication flows and interceptors on the client
-* Binding JSON responses to UI components
-
----
-
-## 🚀 CI/CD & Deployment
-
-We use GitHub Actions for continuous integration.
-
-Every push to dev or main triggers a pipeline that:
-
-* Spins up a MySQL 9.0 container
-* Injects database secrets
-* Applies all migrations
-* Runs automated tests
-
-> All status checks must pass before merging changes.
-
----
-
-## 📁🚫 .gitignore Reference
-
-Ensure your `.gitignore` includes these core entries:
-
-```plaintext
-# 🐍 Python
-__pycache__/
-*.py[cod]
-*$py.class
-venv/
-
-# 🌐 Environment & Backups
-.env
-*.sql
-
-# 💻 OS-specific
-.DS_Store
-```
-
----
-
-## 📦📝 requirements.txt Reference
-
-Ensure your `requirements.txt` includes at least:
-
-```plaintext
-django>=4.2,<5.0
-djangorestframework
-djangorestframework-simplejwt
-mysqlclient
-python-dotenv
-```
-
----
-
-## 💡🔥 Notes & Pro Tips
-
-* 🌿 Branching: Always create a new feature branch before starting work
-* 💬 Comment the "Why": Explain reasoning behind complex logic
-* ⚙️ Keep Secrets Safe: Never commit sensitive files like `.env`
-
-> If you add a new external integration (like email delivery or object storage), add the blank variable name to `.env.example` so everyone on the team knows what needs to be configured! 🚀
+The app is already live, so you don't even need to mess with servers on your computer to view it.
+* The frontend is hosted on **GitHub Pages**.
+* The Django backend is running on **Render**.

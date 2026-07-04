@@ -20,23 +20,24 @@ from .serializers import UserSerializer
 
 class LoginSyncView(APIView):
     """
-        Process user login requests. If the user is valid, we hand back their JWT access tokens and role so the frontend knows what dashboard to load for them.
-        """
+    Process user login requests. If the user is valid, we hand back their JWT access tokens and role so the frontend knows what dashboard to load for them.
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = IdPSyncSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
         try:
+            # 1. Validation is now safely inside the safety net!
+            serializer = IdPSyncSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
             user, pending_user = perform_login_sync(
                 request=request,
                 **serializer.validated_data
             )
 
+            # 2. These must be indented to stay inside the `try` block
             if user:
                 refresh = RefreshToken.for_user(user)
-                # Include basic user info in response for frontend
                 return Response({
                     "refresh": str(refresh),
                     "access": str(refresh.access_token),
@@ -53,15 +54,13 @@ class LoginSyncView(APIView):
             )
 
         except Exception as e:
-            # Keep this for your eyes only (the terminal)
+            # 3. Now ANY crash above will get caught and printed here!
             print(f"DEBUG ERROR: {str(e)}")
 
-            # Send a safe, generic message to the frontend/user
             return Response(
                 {"error": f"The exact bug is: {str(e)}"},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-
 
 class SignupView(APIView):
     """
